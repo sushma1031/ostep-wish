@@ -1,9 +1,10 @@
 #include<stdio.h>
 #define BUFFER_SIZE 256
 
-void printError(){
+void print_error(){
 	char error_message[30] = "An error has occurred\n";
 	write(STDERR_FILENO, error_message, strlen(error_message));
 }
 
-int handleExternal(char*);
+void split_input(char*, char**, int*);
+int handle_external(char**, int);

@@ -9,7 +9,7 @@
 int main(int argc, char *argv[]){
 	char *input = NULL;
     size_t len = 0;
-    int nread;
+    int nread, tokens;
 	
 	while(1){
 		printf("wish> ");
@@ -24,8 +24,26 @@ int main(int argc, char *argv[]){
         		printf("Bye.\n");
         		exit(EXIT_SUCCESS);
         	}
-//        	if not built in
-			handleExternal(input);
+        	
+        	char *buffer[BUFFER_SIZE];
+        	split_input(input, buffer, &tokens);
+        	
+        	// printf("no. of tokens: %d\n", tokens);
+        	
+        	if(strcmp(buffer[0], "cd") == 0){
+        		if(tokens != 2){
+        			print_error();
+        		} else {
+        			int val = chdir(buffer[1]);
+        			if(val == -1)
+        				print_error();
+        		}
+        	} else if(strcmp(buffer[0], "path") == 0){
+        		// handle path
+        		printf("path!\n");
+        	} else { // if not built-in
+				handle_external(buffer, tokens);
+			}
         	
     	} else if (nread == -1){ // eof marker encountered
     		free(input);
@@ -39,25 +57,29 @@ int main(int argc, char *argv[]){
 	return (0);
 }
 
-int handleExternal(char* ip){
-	// printf("Input: %s\n", ip);
-	char *buffer[BUFFER_SIZE];
-	char **proc_args;
-	int i, count = 0;
+void split_input(char* ip, char** buffer, int* count){
+	int n = 0;
 	while(ip != NULL){
 		if(ip[0] == ' '){
 			*ip++;
 			continue;
 		}
-		buffer[count] = strsep(&ip, "\t ");
-		count++;
+		buffer[n] = strsep(&ip, "\t ");
+		n++;
 	}
-	// printf("no. of tokens: %d\n", count);
+	*count = n;
+}
+
+int handle_external(char** buffer, int count){
+	// printf("Input: %s\n", ip);
+	char **proc_args;
+	int i;
+	
 	int rc = fork();
         	if(rc < 0){
-        		printError();
+        		print_error();
         		exit(1);
-        	} else if(rc == 0) { //child
+        	} else if(rc == 0) { // child
         		proc_args = malloc((count+1) * sizeof(char*));
         		proc_args[0] = malloc(6 + strlen(buffer[0]));
         		strcpy(proc_args[0], "/bin/");
@@ -69,7 +91,7 @@ int handleExternal(char* ip){
         		int val = execv(proc_args[0], proc_args);
 				// any statement(s) from here execute only if execv fails
 				if(val == -1){
-					printError();
+					print_error();
 					exit(1);
 				}
         	} else {
