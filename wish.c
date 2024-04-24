@@ -56,8 +56,8 @@ int handleExternal(char* ip){
 	int rc = fork();
         	if(rc < 0){
         		printError();
+        		exit(1);
         	} else if(rc == 0) { //child
-        		printf("child: %d\n", (int) getpid());
         		proc_args = malloc((count+1) * sizeof(char*));
         		proc_args[0] = malloc(6 + strlen(buffer[0]));
         		strcpy(proc_args[0], "/bin/");
@@ -66,12 +66,12 @@ int handleExternal(char* ip){
 		    		proc_args[i] = strdup(buffer[i]);
         		}
         		proc_args[count] = NULL;
-        		for(i=0; i<count; i++){
-		    		printf("%s ", proc_args[i]);
-        		}
-        		printf("\n");
-        		execv(proc_args[0], proc_args);
-				// any statement from here, within the block scope, should not execute
+        		int val = execv(proc_args[0], proc_args);
+				// any statement(s) from here execute only if execv fails
+				if(val == -1){
+					printError();
+					exit(1);
+				}
         	} else {
         		int rc_wait = wait(NULL);
         		// printf("parent of %d (rc_wait:%d) (pid:%d)\n", rc, rc_wait, (int) getpid());
