@@ -6,6 +6,8 @@
 #include<unistd.h>
 #include "wish.h"
 
+char *paths[BUFFER_SIZE] = {"/bin", NULL};
+
 int main(int argc, char *argv[]){
 	char *input = NULL;
     size_t len = 0;
@@ -40,7 +42,17 @@ int main(int argc, char *argv[]){
         		}
         	} else if(strcmp(buffer[0], "path") == 0){
         		// handle path
-        		printf("path!\n");
+        		int i;
+        		for(i=0; paths[i] != NULL; i++){
+        			paths[i] = NULL;
+        		}
+				
+        		if(tokens > 1){
+		    		for(i=1; i<tokens; i++){
+		    			paths[i-1] = strdup(buffer[i]);
+		    		}
+		    		paths[i-1] = NULL;
+        		}
         	} else { // if not built-in
 				handle_external(buffer, tokens);
 			}
