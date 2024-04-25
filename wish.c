@@ -26,6 +26,9 @@ int main(int argc, char *argv[]){
         	char *parsed[BUFFER_SIZE];
         	split_input(input, parsed, &tokens);
         	
+        	if(strcmp(parsed[0], "\0") == 0){
+        		continue;
+        	}
         	if(strcmp(parsed[0], "exit") == 0){
         		if (tokens > 1) {
         			print_error();
@@ -55,6 +58,8 @@ int main(int argc, char *argv[]){
 		    			paths[i-1] = strdup(parsed[i]);
 		    		}
         		}
+        	} else if(strcmp(parsed[0], "$PATH") == 0){
+        		print_paths();
         	} else { // if not built-in
 				handle_external(parsed, tokens);
 			}
@@ -69,6 +74,16 @@ int main(int argc, char *argv[]){
 	}
 	free(input);
 	return (0);
+}
+
+void print_paths(){
+	int i=1;
+	printf("%s", paths[0]);
+	while(paths[i] != NULL){
+		printf(":%s", paths[i]);
+		i++;
+	}
+	printf("\n");
 }
 
 void split_input(char* ip, char** parsed, int* count){
