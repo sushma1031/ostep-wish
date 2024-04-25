@@ -8,3 +8,5 @@ void print_error(){
 
 void split_input(char*, char**, int*);
 int handle_external(char**, int);
+char *concat_n_str(int, char*, char*[]);
+char *search_path(char*);
