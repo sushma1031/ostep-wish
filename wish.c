@@ -22,27 +22,27 @@ int main(int argc, char *argv[]){
 			//remove newline character
 			if(input[nread-1] == '\n')
 			input[nread-1] = '\0';
-			
-        	if(strcmp(input, "exit") == 0){
-        		free(input);
-        		printf("Bye.\n");
-        		exit(EXIT_SUCCESS);
-        	}
         	
-        	char *buffer[BUFFER_SIZE];
-        	split_input(input, buffer, &tokens);
+        	char *parsed[BUFFER_SIZE];
+        	split_input(input, parsed, &tokens);
         	
-        	// printf("no. of tokens: %d\n", tokens);
-        	
-        	if(strcmp(buffer[0], "cd") == 0){
+        	if(strcmp(parsed[0], "exit") == 0){
+        		if (tokens > 1) {
+        			print_error();
+        		} else {
+		    		free(input);
+		    		printf("Bye.\n");
+		    		exit(EXIT_SUCCESS);
+        		}
+        	} else if(strcmp(parsed[0], "cd") == 0){
         		if(tokens != 2){
         			print_error();
         		} else {
-        			int val = chdir(buffer[1]);
+        			int val = chdir(parsed[1]);
         			if(val == -1)
         				print_error();
         		}
-        	} else if(strcmp(buffer[0], "path") == 0){
+        	} else if(strcmp(parsed[0], "path") == 0){
         		// handle path
         		int i;
         		for(i=0; paths[i] != NULL; i++){
@@ -52,11 +52,11 @@ int main(int argc, char *argv[]){
 				
         		if(tokens > 1){
 		    		for(i=1; i<tokens; i++){
-		    			paths[i-1] = strdup(buffer[i]);
+		    			paths[i-1] = strdup(parsed[i]);
 		    		}
         		}
         	} else { // if not built-in
-				handle_external(buffer, tokens);
+				handle_external(parsed, tokens);
 			}
         	
     	} else if (nread == -1){ // eof marker encountered
@@ -71,14 +71,14 @@ int main(int argc, char *argv[]){
 	return (0);
 }
 
-void split_input(char* ip, char** buffer, int* count){
+void split_input(char* ip, char** parsed, int* count){
 	int n = 0;
 	while(ip != NULL){
 		if(ip[0] == ' '){
 			*ip++;
 			continue;
 		}
-		buffer[n] = strsep(&ip, "\t ");
+		parsed[n] = strsep(&ip, "\t ");
 		n++;
 	}
 	*count = n;
@@ -117,7 +117,7 @@ char* search_path(char* cmd){
 	return NULL;
 }
 
-int handle_external(char** buffer, int count){
+int handle_external(char** parsed, int count){
 	// printf("Input: %s\n", ip);
 	char **proc_args;
 	int i;
@@ -127,7 +127,7 @@ int handle_external(char** buffer, int count){
         		print_error();
         		exit(1);
         	} else if(rc == 0) { // child
-        		char *path = search_path(buffer[0]);
+        		char *path = search_path(parsed[0]);
         		if(path == NULL){
         			print_error();
         			exit(1);
@@ -137,7 +137,7 @@ int handle_external(char** buffer, int count){
         		proc_args[0] = path;
         		
         		for(i=1; i<count; i++){
-		    		proc_args[i] = strdup(buffer[i]);
+		    		proc_args[i] = strdup(parsed[i]);
         		}
         		proc_args[count] = NULL;
         		int val = execv(proc_args[0], proc_args);
