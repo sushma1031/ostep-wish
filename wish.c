@@ -10,6 +10,7 @@ char *paths[BUFFER_SIZE];
 
 int main(int argc, char *argv[]){
 	char *input = NULL;
+	char *input_copy = NULL;
     size_t len = 0;
     int nread, tokens;
     paths[0] = strdup("/bin");
@@ -21,8 +22,9 @@ int main(int argc, char *argv[]){
 		if((nread = getline(&input, &len, stdin)) > 0){
 			//remove newline character
 			if(input[nread-1] == '\n')
-			input[nread-1] = '\0';
-        	
+				input[nread-1] = '\0';
+        	input_copy = input;
+        	        	
         	char *parsed[BUFFER_SIZE];
         	split_input(input, parsed, &tokens);
         	
@@ -69,10 +71,10 @@ int main(int argc, char *argv[]){
     		printf("Exit gracefully.\n");
         	exit(EXIT_SUCCESS);
     	}
+    	free(input_copy);
     	input = NULL;
     	len = 0;
 	}
-	free(input);
 	return (0);
 }
 
@@ -113,6 +115,9 @@ char* search_path(char* cmd){
 	char *path;
 	for(i=0; paths[i] != NULL; i++){
 		path = malloc(strlen(paths[i]) + strlen(cmd) + 2);
+		if(path == NULL){
+			return NULL;
+		}
 		char *s[3];
 		s[0] = paths[i];
 		s[1] = strdup("/");
@@ -147,15 +152,19 @@ int handle_external(char** parsed, int count){
         			print_error();
         			exit(1);
         		}
-        		proc_args = malloc((count+1) * sizeof(char*));      		
+        		proc_args = calloc((count+1), sizeof(char*));      		
+        		if(proc_args == NULL){
+        			print_error();
+					exit(1);
+        		}
         		
         		proc_args[0] = path;
-        		
         		for(i=1; i<count; i++){
 		    		proc_args[i] = strdup(parsed[i]);
         		}
         		proc_args[count] = NULL;
         		int val = execv(proc_args[0], proc_args);
+				
 				// any statement(s) from here execute only if execv fails
 				if(val == -1){
 					print_error();
