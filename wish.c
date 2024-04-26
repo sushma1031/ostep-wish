@@ -94,14 +94,14 @@ void print_paths(){
 	printf("\n");
 }
 
-void split_input(char* ip, char** parsed, int* count){
+void split_input(char* ip, char** buffer, int* count){
 	int n = 0;
 	while(ip != NULL){
 		if(ip[0] == ' '){
 			*ip++;
 			continue;
 		}
-		parsed[n] = strsep(&ip, "\t ");
+		buffer[n] = strsep(&ip, "\t ");
 		n++;
 	}
 	*count = n;
