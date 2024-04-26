@@ -57,7 +57,13 @@ int main(int argc, char *argv[]){
 				
         		if(tokens > 1){
 		    		for(i=1; i<tokens; i++){
-		    			paths[i-1] = strdup(parsed[i]);
+		    			if(parsed[i][0] == '/'){
+		    				paths[i-1] = strdup(parsed[i]);
+		    			} else {
+		    				paths[i-1] = malloc(3 + strlen(parsed[i]));
+		    				strcpy(paths[i-1], "./");
+		    				strcat(paths[i-1], parsed[i]);
+		    			}
 		    		}
         		}
         	} else if(strcmp(parsed[0], "$PATH") == 0){
