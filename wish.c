@@ -9,21 +9,31 @@
 char *paths[BUFFER_SIZE];
 
 int main(int argc, char *argv[]){
+	FILE *in = stdin;
+	int mode = INTERACTIVE;
 	char *input = NULL;
-	char *input_copy = NULL;
     size_t len = 0;
     int nread, tokens;
     paths[0] = strdup("/bin");
 	paths[1] = NULL;
 	
-	while(1){
-		printf("wish> ");
+	if(argc > 1){
+		mode = BATCH;
+		if(argc > 2 || (in = fopen(argv[1], "r")) == NULL){
+			print_error();
+			exit(EXIT_FAILURE);
+		}
+	}
 		
-		if((nread = getline(&input, &len, stdin)) > 0){
+	while(1){
+		if(mode == INTERACTIVE){
+			printf("wish> ");
+		}
+			
+		if((nread = getline(&input, &len, in)) > 0){
 			//remove newline character
 			if(input[nread-1] == '\n')
 				input[nread-1] = '\0';
-        	input_copy = input;
         	        	
         	char *parsed[BUFFER_SIZE];
         	split_input(input, parsed, &tokens);
@@ -36,6 +46,7 @@ int main(int argc, char *argv[]){
         			print_error();
         		} else {
 		    		free(input);
+		    		fclose(in);
 		    		printf("Bye.\n");
 		    		exit(EXIT_SUCCESS);
         		}
@@ -69,15 +80,16 @@ int main(int argc, char *argv[]){
         	} else if(strcmp(parsed[0], "$PATH") == 0){
         		print_paths();
         	} else { // if not built-in
-				handle_external(parsed, tokens);
+				execute_command(parsed, tokens);
 			}
         	
     	} else if (nread == -1){ // eof marker encountered
     		free(input);
-    		printf("Exit gracefully.\n");
+    		fclose(in);
+    		printf("eof: exit gracefully.\n");
         	exit(EXIT_SUCCESS);
     	}
-    	free(input_copy);
+    	free(input);
     	input = NULL;
     	len = 0;
 	}
@@ -143,7 +155,7 @@ char* search_path(char* cmd){
 	return NULL;
 }
 
-int handle_external(char** parsed, int count){
+int execute_command(char** parsed, int count){
 	// printf("Input: %s\n", ip);
 	char **proc_args;
 	int i;
