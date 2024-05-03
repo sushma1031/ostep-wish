@@ -155,7 +155,7 @@ char* search_path(char* cmd){
 	return NULL;
 }
 
-int execute_command(char** parsed, int count){
+void execute_command(char** parsed, int count){
 	// printf("Input: %s\n", ip);
 	char **proc_args;
 	int i;
@@ -192,5 +192,4 @@ int execute_command(char** parsed, int count){
         		int rc_wait = wait(NULL);
         		// printf("parent of %d (rc_wait:%d) (pid:%d)\n", rc, rc_wait, (int) getpid());
         	}
-	return 0;
 }

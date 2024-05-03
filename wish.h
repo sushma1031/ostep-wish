@@ -10,7 +10,7 @@ void print_error(){
 }
 
 void split_input(char*, char**, int*);
-int execute_command(char**, int);
+void execute_command(char**, int);
 char *concat_n_str(int, char*, char*[]);
 char *search_path(char*);
 void print_paths();
