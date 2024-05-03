@@ -178,7 +178,7 @@ void execute_command(char** parsed, int count){
         		
         		proc_args[0] = path;
         		for(i=1; i<count; i++){
-		    		proc_args[i] = strdup(parsed[i]);
+        			proc_args[i] = parsed[i];
         		}
         		proc_args[count] = NULL;
         		int val = execv(proc_args[0], proc_args);
