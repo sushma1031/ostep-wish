@@ -12,6 +12,7 @@ int main(int argc, char *argv[]){
 	FILE *in = stdin;
 	int mode = INTERACTIVE;
 	char *input = NULL;
+	char* input_copy = NULL;
     size_t len = 0;
     int nread, tokens;
     paths[0] = strdup("/bin");
@@ -34,7 +35,7 @@ int main(int argc, char *argv[]){
 			//remove newline character
 			if(input[nread-1] == '\n')
 				input[nread-1] = '\0';
-        	        	
+        	input_copy = input;        	
         	char *parsed[BUFFER_SIZE];
         	split_input(input, parsed, &tokens);
         	
@@ -45,7 +46,7 @@ int main(int argc, char *argv[]){
         		if (tokens > 1) {
         			print_error();
         		} else {
-		    		free(input);
+		    		free(input_copy);
 		    		fclose(in);
 		    		printf("Bye.\n");
 		    		exit(EXIT_SUCCESS);
@@ -84,13 +85,14 @@ int main(int argc, char *argv[]){
 			}
         	
     	} else if (nread == -1){ // eof marker encountered
-    		free(input);
+    		free(input_copy);
     		fclose(in);
     		printf("eof: exit gracefully.\n");
         	exit(EXIT_SUCCESS);
     	}
-    	free(input);
+    	free(input_copy);
     	input = NULL;
+    	input_copy = NULL;
     	len = 0;
 	}
 	return (0);
