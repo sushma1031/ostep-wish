@@ -98,6 +98,21 @@ int main(int argc, char *argv[]){
 	return (0);
 }
 
+char* trim (char *str, int len){
+	int i = len - 1;
+	// leading spaces
+	while(str[0] == ' ' || str[0] == '\t'){
+		*str++;
+	}
+	
+	//trailing spaces
+	while(str[i] == ' ' || str[i] == '\t'){
+		str[i] = '\0';
+		i--;
+	}
+	return str;
+}
+
 void print_paths(){
 	int i=1;
 	printf("%s", paths[0]);
