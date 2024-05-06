@@ -1,3 +1,4 @@
+#include<ctype.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -98,15 +99,17 @@ int main(int argc, char *argv[]){
 	return (0);
 }
 
-char* trim (char *str, int len){
-	int i = len - 1;
+char* trim (char *str){
 	// leading spaces
-	while(str[0] == ' ' || str[0] == '\t'){
-		*str++;
+	while(isspace(str[0])){
+		str++;
 	}
-	
+	if(str[0] == '\0'){
+		return str; //empty string
+	}
+	int i = (int)strlen(str)-1;
 	//trailing spaces
-	while(str[i] == ' ' || str[i] == '\t'){
+	while(i>=0 && isspace(str[i])){
 		str[i] = '\0';
 		i--;
 	}

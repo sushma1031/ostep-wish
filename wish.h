@@ -14,5 +14,5 @@ void execute_command(char**, int);
 char *concat_n_str(int, char*, char*[]);
 char *search_path(char*);
 void print_paths();
-char* trim(char*, int);
+char* trim(char*);
 void cleanup();
