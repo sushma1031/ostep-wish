@@ -10,9 +10,10 @@ void print_error(){
 }
 
 void split_input(char*, char**, int*);
-void execute_command(char**, int);
+void execute_command(char**, int, FILE*);
 char *concat_n_str(int, char*, char*[]);
 char *search_path(char*);
 void print_paths();
+int redirect(FILE *);
 char* trim(char*);
 void cleanup();

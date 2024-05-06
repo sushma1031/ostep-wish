@@ -1,4 +1,5 @@
 #include<ctype.h>
+#include<regex.h>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -11,9 +12,11 @@ char *paths[BUFFER_SIZE];
 
 int main(int argc, char *argv[]){
 	FILE *in = stdin;
+	FILE *out = stdout;
 	int mode = INTERACTIVE;
+	char *output = NULL;
 	char *input = NULL;
-	char* input_copy = NULL;
+	char *input_copy = NULL;
     size_t len = 0;
     int nread, tokens;
     paths[0] = strdup("/bin");
@@ -37,19 +40,49 @@ int main(int argc, char *argv[]){
 			if(input[nread-1] == '\n')
 				input[nread-1] = '\0';
         	input_copy = input;        	
-        	char *parsed[BUFFER_SIZE];
-        	split_input(input, parsed, &tokens);
         	
-        	if(strcmp(parsed[0], "\0") == 0){
+        	char *parsed[BUFFER_SIZE];
+        	
+        	char *cmd = strsep(&input_copy, ">");
+        	if(input_copy != NULL){
+        	    if(*cmd == '\0'){
+        			print_error();
+        			continue;
+        		}
+        		regex_t regex; 
+        		if (input_copy[0] == '>'){ 
+        			print_error();
+        			continue;
+        		}
+        		output = trim(input_copy);
+        		if(regcomp(&regex, "[[:space:]>]", 0) != 0){ //check if it contains '>' or spaces
+		    		print_error();
+		    		continue;
+		    	}
+        		if(regexec(&regex, output, 0, NULL, 0) == 0){
+        			print_error();
+        			regfree(&regex);
+		    		continue;
+        		}
+        		if(*output == '\0' || (out = fopen(output, "w")) == NULL){
+        			out = stdout;
+        			print_error();
+        			continue;
+        		}
+        	}    	
+        	cmd = trim(cmd);
+        	if(*cmd == '\0'){
         		continue;
         	}
+        	split_input(cmd, parsed, &tokens);
+        	
         	if(strcmp(parsed[0], "exit") == 0){
         		if (tokens > 1) {
         			print_error();
         		} else {
 		    		free(input_copy);
 		    		fclose(in);
-		    		printf("Bye.\n");
+		    		// printf("Bye.\n");
 		    		exit(EXIT_SUCCESS);
         		}
         	} else if(strcmp(parsed[0], "cd") == 0){
@@ -82,18 +115,20 @@ int main(int argc, char *argv[]){
         	} else if(strcmp(parsed[0], "$PATH") == 0){
         		print_paths();
         	} else { // if not built-in
-				execute_command(parsed, tokens);
+				execute_command(parsed, tokens, out);
 			}
         	
     	} else if (nread == -1){ // eof marker encountered
-    		free(input_copy);
+    		free(input);
     		fclose(in);
-    		printf("eof: exit gracefully.\n");
+    		// printf("eof: exit gracefully.\n");
         	exit(EXIT_SUCCESS);
     	}
-    	free(input_copy);
+    	free(input);
     	input = NULL;
     	input_copy = NULL;
+    	output = NULL;
+    	out = stdout;
     	len = 0;
 	}
 	return (0);
@@ -116,6 +151,25 @@ char* trim (char *str){
 	return str;
 }
 
+int redirect(FILE* fp){
+	int fno;
+	if((fno = fileno(fp)) == -1){
+		return -1;
+	}
+	if(fno != STDOUT_FILENO){
+		if(dup2(fno, STDOUT_FILENO) == -1){
+			return -1;
+		}
+		// printf("output redirected\n");
+		if(dup2(fno, STDERR_FILENO) == -1){
+			return -1;
+		}
+		// fprintf(stderr, "error redirected\n");
+		fclose(fp);
+	}
+	return 0;
+}
+
 void print_paths(){
 	int i=1;
 	printf("%s", paths[0]);
@@ -130,7 +184,7 @@ void split_input(char* ip, char** buffer, int* count){
 	int n = 0;
 	while(ip != NULL){
 		if(ip[0] == ' '){
-			*ip++;
+			ip++;
 			continue;
 		}
 		buffer[n] = strsep(&ip, "\t ");
@@ -175,7 +229,7 @@ char* search_path(char* cmd){
 	return NULL;
 }
 
-void execute_command(char** parsed, int count){
+void execute_command(char** parsed, int count, FILE *out){
 	// printf("Input: %s\n", ip);
 	char **proc_args;
 	int i;
@@ -201,15 +255,18 @@ void execute_command(char** parsed, int count){
         			proc_args[i] = parsed[i];
         		}
         		proc_args[count] = NULL;
-        		int val = execv(proc_args[0], proc_args);
-				
-				// any statement(s) from here execute only if execv fails
-				if(val == -1){
+        		if(redirect(out) == -1){
+        			print_error();
+        			exit(1);
+        		}
+        		
+				if(execv(proc_args[0], proc_args) == -1){
+					// any statement(s) from here execute only if execv fails
 					print_error();
 					exit(1);
 				}
         	} else {
-        		int rc_wait = wait(NULL);
+        		wait(NULL);
         		// printf("parent of %d (rc_wait:%d) (pid:%d)\n", rc, rc_wait, (int) getpid());
         	}
 }
