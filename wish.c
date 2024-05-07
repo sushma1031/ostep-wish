@@ -45,14 +45,15 @@ int main(int argc, char *argv[]){
         	
         	char *cmd = strsep(&input_copy, ">");
         	if(input_copy != NULL){
-        	    if(*cmd == '\0'){
+        	    if(*cmd == '\0' || *(output = trim(input_copy)) == '\0'){
         			print_error();
         			continue;
         		}
         		regex_t regex; 
-        		output = trim(input_copy);
-        		if(regcomp(&regex, "[[:space:]>]", 0) != 0){ //check if it contains '>' or spaces
+        		//check if output contains '>' or spaces
+        		if(regcomp(&regex, "[[:space:]>]", 0) != 0){ 
 		    		print_error();
+		    		regfree(&regex);
 		    		continue;
 		    	}
         		if(regexec(&regex, output, 0, NULL, 0) == 0){
@@ -60,18 +61,19 @@ int main(int argc, char *argv[]){
         			regfree(&regex);
 		    		continue;
         		}
-        		if(*output == '\0' || (out = fopen(output, "w")) == NULL){
+        		 if((out = fopen(output, "w")) == NULL){
         			out = stdout;
         			print_error();
         			continue;
         		}
         	}    	
         	cmd = trim(cmd);
-        	if(*cmd == '\0'){
+        	if(*cmd == '\0'){ // if the input was only whitespace
         		continue;
         	}
-        	split_input(cmd, parsed, &tokens);
+        	split_cmd(cmd, parsed, &tokens);
         	
+        	//to do: handle built in commands in a seperate function
         	if(strcmp(parsed[0], "exit") == 0){
         		if (tokens > 1) {
         			print_error();
@@ -85,18 +87,16 @@ int main(int argc, char *argv[]){
         		if(tokens != 2){
         			print_error();
         		} else {
-        			int val = chdir(parsed[1]);
-        			if(val == -1)
+        			if(chdir(parsed[1]) == -1)
         				print_error();
         		}
         	} else if(strcmp(parsed[0], "path") == 0){
-        		// handle path
+        	//opt to do: update paths in a seperate function
         		int i;
         		for(i=0; paths[i] != NULL; i++){
         			free(paths[i]);
         			paths[i] = NULL;
         		}
-				
         		if(tokens > 1){
 		    		for(i=1; i<tokens; i++){
 		    			if(parsed[i][0] == '/'){
@@ -114,7 +114,7 @@ int main(int argc, char *argv[]){
 				execute_command(parsed, tokens, out);
 			}
         	
-    	} else if (nread == -1){ // eof marker encountered
+    	} else if (nread == -1) { // eof marker encountered
     		free(input);
     		fclose(in);
     		// printf("eof: exit gracefully.\n");
@@ -176,7 +176,7 @@ void print_paths(){
 	printf("\n");
 }
 
-void split_input(char* ip, char** buffer, int* count){
+void split_cmd(char* ip, char** buffer, int* count){
 	int n = 0;
 	while(ip != NULL){
 		if(ip[0] == ' '){
