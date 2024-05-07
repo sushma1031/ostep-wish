@@ -9,40 +9,56 @@
 char *paths[BUFFER_SIZE];
 
 int main(int argc, char *argv[]){
+	FILE *in = stdin;
+	int mode = INTERACTIVE;
 	char *input = NULL;
     size_t len = 0;
     int nread, tokens;
     paths[0] = strdup("/bin");
 	paths[1] = NULL;
 	
-	while(1){
-		printf("wish> ");
+	if(argc > 1){
+		mode = BATCH;
+		if(argc > 2 || (in = fopen(argv[1], "r")) == NULL){
+			print_error();
+			exit(EXIT_FAILURE);
+		}
+	}
 		
-		if((nread = getline(&input, &len, stdin)) > 0){
+	while(1){
+		if(mode == INTERACTIVE){
+			printf("wish> ");
+		}
+			
+		if((nread = getline(&input, &len, in)) > 0){
 			//remove newline character
 			if(input[nread-1] == '\n')
-			input[nread-1] = '\0';
-			
-        	if(strcmp(input, "exit") == 0){
-        		free(input);
-        		printf("Bye.\n");
-        		exit(EXIT_SUCCESS);
+				input[nread-1] = '\0';
+        	        	
+        	char *parsed[BUFFER_SIZE];
+        	split_input(input, parsed, &tokens);
+        	
+        	if(strcmp(parsed[0], "\0") == 0){
+        		continue;
         	}
-        	
-        	char *buffer[BUFFER_SIZE];
-        	split_input(input, buffer, &tokens);
-        	
-        	// printf("no. of tokens: %d\n", tokens);
-        	
-        	if(strcmp(buffer[0], "cd") == 0){
+        	if(strcmp(parsed[0], "exit") == 0){
+        		if (tokens > 1) {
+        			print_error();
+        		} else {
+		    		free(input);
+		    		fclose(in);
+		    		printf("Bye.\n");
+		    		exit(EXIT_SUCCESS);
+        		}
+        	} else if(strcmp(parsed[0], "cd") == 0){
         		if(tokens != 2){
         			print_error();
         		} else {
-        			int val = chdir(buffer[1]);
+        			int val = chdir(parsed[1]);
         			if(val == -1)
         				print_error();
         		}
-        	} else if(strcmp(buffer[0], "path") == 0){
+        	} else if(strcmp(parsed[0], "path") == 0){
         		// handle path
         		int i;
         		for(i=0; paths[i] != NULL; i++){
@@ -52,23 +68,42 @@ int main(int argc, char *argv[]){
 				
         		if(tokens > 1){
 		    		for(i=1; i<tokens; i++){
-		    			paths[i-1] = strdup(buffer[i]);
+		    			if(parsed[i][0] == '/'){
+		    				paths[i-1] = strdup(parsed[i]);
+		    			} else {
+		    				paths[i-1] = malloc(3 + strlen(parsed[i]));
+		    				strcpy(paths[i-1], "./");
+		    				strcat(paths[i-1], parsed[i]);
+		    			}
 		    		}
         		}
+        	} else if(strcmp(parsed[0], "$PATH") == 0){
+        		print_paths();
         	} else { // if not built-in
-				handle_external(buffer, tokens);
+				execute_command(parsed, tokens);
 			}
         	
     	} else if (nread == -1){ // eof marker encountered
     		free(input);
-    		printf("Exit gracefully.\n");
+    		fclose(in);
+    		printf("eof: exit gracefully.\n");
         	exit(EXIT_SUCCESS);
     	}
+    	free(input);
     	input = NULL;
     	len = 0;
 	}
-	free(input);
 	return (0);
+}
+
+void print_paths(){
+	int i=1;
+	printf("%s", paths[0]);
+	while(paths[i] != NULL){
+		printf(":%s", paths[i]);
+		i++;
+	}
+	printf("\n");
 }
 
 void split_input(char* ip, char** buffer, int* count){
@@ -98,6 +133,9 @@ char* search_path(char* cmd){
 	char *path;
 	for(i=0; paths[i] != NULL; i++){
 		path = malloc(strlen(paths[i]) + strlen(cmd) + 2);
+		if(path == NULL){
+			return NULL;
+		}
 		char *s[3];
 		s[0] = paths[i];
 		s[1] = strdup("/");
@@ -117,7 +155,7 @@ char* search_path(char* cmd){
 	return NULL;
 }
 
-int handle_external(char** buffer, int count){
+int execute_command(char** parsed, int count){
 	// printf("Input: %s\n", ip);
 	char **proc_args;
 	int i;
@@ -127,20 +165,24 @@ int handle_external(char** buffer, int count){
         		print_error();
         		exit(1);
         	} else if(rc == 0) { // child
-        		char *path = search_path(buffer[0]);
+        		char *path = search_path(parsed[0]);
         		if(path == NULL){
         			print_error();
         			exit(1);
         		}
-        		proc_args = malloc((count+1) * sizeof(char*));      		
+        		proc_args = calloc((count+1), sizeof(char*));      		
+        		if(proc_args == NULL){
+        			print_error();
+					exit(1);
+        		}
         		
         		proc_args[0] = path;
-        		
         		for(i=1; i<count; i++){
-		    		proc_args[i] = strdup(buffer[i]);
+		    		proc_args[i] = strdup(parsed[i]);
         		}
         		proc_args[count] = NULL;
         		int val = execv(proc_args[0], proc_args);
+				
 				// any statement(s) from here execute only if execv fails
 				if(val == -1){
 					print_error();
