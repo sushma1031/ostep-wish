@@ -12,13 +12,11 @@ char *paths[BUFFER_SIZE];
 
 int main(int argc, char *argv[]){
 	FILE *in = stdin;
-	FILE *out = stdout;
 	int mode = INTERACTIVE;
-	char *output = NULL;
 	char *input = NULL;
 	char *input_copy = NULL;
     size_t len = 0;
-    int nread, tokens;
+    int nread;
     paths[0] = strdup("/bin");
 	paths[1] = NULL;
 	
@@ -40,78 +38,8 @@ int main(int argc, char *argv[]){
 			if(input[nread-1] == '\n')
 				input[nread-1] = '\0';
         	input_copy = input;        	
-        	
-        	char *parsed[BUFFER_SIZE];
-        	
-        	char *cmd = strsep(&input_copy, ">");
-        	if(input_copy != NULL){
-        	    if(*cmd == '\0' || *(output = trim(input_copy)) == '\0'){
-        			print_error();
-        			continue;
-        		}
-        		regex_t regex; 
-        		//check if output contains '>' or spaces
-        		if(regcomp(&regex, "[[:space:]>]", 0) != 0){ 
-		    		print_error();
-		    		regfree(&regex);
-		    		continue;
-		    	}
-        		if(regexec(&regex, output, 0, NULL, 0) == 0){
-        			print_error();
-        			regfree(&regex);
-		    		continue;
-        		}
-        		 if((out = fopen(output, "w")) == NULL){
-        			out = stdout;
-        			print_error();
-        			continue;
-        		}
-        	}    	
-        	cmd = trim(cmd);
-        	if(*cmd == '\0'){ // if the input was only whitespace
-        		continue;
-        	}
-        	split_cmd(cmd, parsed, &tokens);
-        	
-        	//to do: handle built in commands in a seperate function
-        	if(strcmp(parsed[0], "exit") == 0){
-        		if (tokens > 1) {
-        			print_error();
-        		} else {
-		    		free(input_copy);
-		    		fclose(in);
-		    		// printf("Bye.\n");
-		    		exit(EXIT_SUCCESS);
-        		}
-        	} else if(strcmp(parsed[0], "cd") == 0){
-        		if(tokens != 2){
-        			print_error();
-        		} else {
-        			if(chdir(parsed[1]) == -1)
-        				print_error();
-        		}
-        	} else if(strcmp(parsed[0], "path") == 0){
-        	//opt to do: update paths in a seperate function
-        		int i;
-        		for(i=0; paths[i] != NULL; i++){
-        			free(paths[i]);
-        			paths[i] = NULL;
-        		}
-        		if(tokens > 1){
-		    		for(i=1; i<tokens; i++){
-		    			if(parsed[i][0] == '/'){
-		    				paths[i-1] = strdup(parsed[i]);
-		    			} else {
-		    				paths[i-1] = malloc(3 + strlen(parsed[i]));
-		    				strcpy(paths[i-1], "./");
-		    				strcat(paths[i-1], parsed[i]);
-		    			}
-		    		}
-        		}
-        	} else if(strcmp(parsed[0], "$PATH") == 0){
-        		print_paths();
-        	} else { // if not built-in
-				execute_command(parsed, tokens, out);
+			if(parse_input(input_copy, in) == -1){
+				print_error();
 			}
         	
     	} else if (nread == -1) { // eof marker encountered
@@ -123,8 +51,6 @@ int main(int argc, char *argv[]){
     	free(input);
     	input = NULL;
     	input_copy = NULL;
-    	output = NULL;
-    	out = stdout;
     	len = 0;
 	}
 	return (0);
@@ -145,6 +71,79 @@ char* trim (char *str){
 		i--;
 	}
 	return str;
+}
+
+int parse_input(char* ip, FILE* in){
+	int tokens;
+	char *output = NULL;
+	FILE *out = stdout;
+	char *parsed[BUFFER_SIZE];
+    char *cmd = strsep(&ip, ">");
+	if(ip != NULL){
+	    if(*cmd == '\0' || *(output = trim(ip)) == '\0'){
+			return -1;
+		}
+		regex_t regex;
+		//check if output contains '>' or spaces
+		if(regcomp(&regex, "[[:space:]>]", 0) != 0){
+			regfree(&regex);
+			return -1;
+    	}
+		if(regexec(&regex, output, 0, NULL, 0) == 0){
+			regfree(&regex);
+			return -1;
+		}
+		 if((out = fopen(output, "w")) == NULL){
+			return -1;
+		}
+	}
+	cmd = trim(cmd);
+	if(*cmd == '\0'){ // if the input was only whitespace
+		return 0;
+	}
+	split_cmd(cmd, parsed, &tokens);
+
+	//to do: handle built in commands in a seperate function
+	if(strcmp(parsed[0], "exit") == 0){
+		if (tokens > 1) {
+			print_error();
+		} else {
+    		free(ip);
+    		fclose(in);
+    		// printf("Bye.\n");
+    		exit(EXIT_SUCCESS);
+		}
+	} else if(strcmp(parsed[0], "cd") == 0){
+		if(tokens != 2){
+			print_error();
+		} else {
+			if(chdir(parsed[1]) == -1)
+				print_error();
+		}
+	} else if(strcmp(parsed[0], "path") == 0){
+	//opt to do: update paths in a seperate function
+		int i;
+		for(i=0; paths[i] != NULL; i++){
+			free(paths[i]);
+			paths[i] = NULL;
+		}
+		if(tokens > 1){
+    		for(i=1; i<tokens; i++){
+    			if(parsed[i][0] == '/'){
+    				paths[i-1] = strdup(parsed[i]);
+    			} else {
+    				paths[i-1] = malloc(3 + strlen(parsed[i]));
+    				strcpy(paths[i-1], "./");
+    				strcat(paths[i-1], parsed[i]);
+    			}
+    		}
+		}
+	} else if(strcmp(parsed[0], "$PATH") == 0){
+		print_paths();
+	} else { // if not built-in
+		execute_command(parsed, tokens, out);
+	}
+	return 0;
 }
 
 int redirect(FILE* fp){
