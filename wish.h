@@ -9,7 +9,7 @@ void print_error(){
 	write(STDERR_FILENO, error_message, strlen(error_message));
 }
 
-int parse_input(char*, FILE*);
+int process_input(char*, FILE*);
 void split_cmd(char*, char**, int*);
 void execute_command(char**, int, FILE*);
 char *concat_n_str(int, char*, char*[]);

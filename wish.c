@@ -12,11 +12,11 @@ char *paths[BUFFER_SIZE];
 
 int main(int argc, char *argv[]){
 	FILE *in = stdin;
-	int mode = INTERACTIVE;
+	int  nread, procs = 0, mode = INTERACTIVE;
 	char *input = NULL;
 	char *input_copy = NULL;
+	char *proc;
     size_t len = 0;
-    int nread;
     paths[0] = strdup("/bin");
 	paths[1] = NULL;
 	
@@ -38,10 +38,16 @@ int main(int argc, char *argv[]){
 			if(input[nread-1] == '\n')
 				input[nread-1] = '\0';
         	input_copy = input;        	
-			if(parse_input(input_copy, in) == -1){
-				print_error();
+			while(input_copy != NULL){
+				proc = strsep(&input_copy, "&");
+				procs++;
+				if(process_input(proc, in) == -1){
+					print_error();
+				}
 			}
-        	
+			for(int i=0; i<procs; i++){
+				wait(NULL);
+			}	
     	} else if (nread == -1) { // eof marker encountered
     		free(input);
     		fclose(in);
@@ -52,6 +58,7 @@ int main(int argc, char *argv[]){
     	input = NULL;
     	input_copy = NULL;
     	len = 0;
+    	procs = 0;
 	}
 	return (0);
 }
@@ -73,7 +80,7 @@ char* trim (char *str){
 	return str;
 }
 
-int parse_input(char* ip, FILE* in){
+int process_input(char* ip, FILE* in){
 	int tokens;
 	char *output = NULL;
 	FILE *out = stdout;
@@ -261,7 +268,6 @@ void execute_command(char** parsed, int count, FILE *out){
 					exit(1);
 				}
         	} else {
-        		wait(NULL);
-        		// printf("parent of %d (rc_wait:%d) (pid:%d)\n", rc, rc_wait, (int) getpid());
+        		return;
         	}
 }
