@@ -50,10 +50,6 @@ int main(int argc, char *argv[]){
         			continue;
         		}
         		regex_t regex; 
-        		if (input_copy[0] == '>'){ 
-        			print_error();
-        			continue;
-        		}
         		output = trim(input_copy);
         		if(regcomp(&regex, "[[:space:]>]", 0) != 0){ //check if it contains '>' or spaces
 		    		print_error();
