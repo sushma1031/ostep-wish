@@ -237,37 +237,37 @@ void execute_command(char** parsed, int count, FILE *out){
 	int i;
 	
 	int rc = fork();
-        	if(rc < 0){
-        		print_error();
-        		exit(1);
-        	} else if(rc == 0) { // child
-        		char *path = search_path(parsed[0]);
-        		if(path == NULL){
-        			print_error();
-        			exit(1);
-        		}
-        		proc_args = calloc((count+1), sizeof(char*));      		
-        		if(proc_args == NULL){
-        			print_error();
-					exit(1);
-        		}
-        		
-        		proc_args[0] = path;
-        		for(i=1; i<count; i++){
-        			proc_args[i] = parsed[i];
-        		}
-        		proc_args[count] = NULL;
-        		if(redirect(out) == -1){
-        			print_error();
-        			exit(1);
-        		}
-        		
-				if(execv(proc_args[0], proc_args) == -1){
-					// any statement(s) from here execute only if execv fails
-					print_error();
-					exit(1);
-				}
-        	} else {
-        		return;
-        	}
+	if(rc < 0){
+		print_error();
+		exit(1);
+	} else if(rc == 0) { // child
+		char *path = search_path(parsed[0]);
+		if(path == NULL){
+			print_error();
+			exit(1);
+		}
+		proc_args = calloc((count+1), sizeof(char*));      		
+		if(proc_args == NULL){
+			print_error();
+			exit(1);
+		}
+		
+		proc_args[0] = path;
+		for(i=1; i<count; i++){
+			proc_args[i] = parsed[i];
+		}
+		proc_args[count] = NULL;
+		if(redirect(out) == -1){
+			print_error();
+			exit(1);
+		}
+		
+		if(execv(proc_args[0], proc_args) == -1){
+			// any statement(s) from here execute only if execv fails
+			print_error();
+			exit(1);
+		}
+	} else {
+		return;
+	}
 }
