@@ -4,6 +4,6 @@ More information: [OSTEP Projects: Unix Shell](https://github.com/remzi-arpacidu
 
 ## Compilation & Execution
 ```
-gcc wish.c -o wish --Wall --Werror
+gcc wish.c -o wish -Wall -Werror
 ./wish
 ```
